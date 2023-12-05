@@ -3,6 +3,8 @@ Analysis of RNAseq and clinical data of TCGA-BRCA female patients
 
 ## `preprocessing+genefinding.R` 
 - download and preprocess RNAseq data
+  - filtering
+  - normalization
   - remove NAs in survival times
   - remove 12 males
 - find differentially expressed genes (DEGs)
