@@ -10,8 +10,10 @@ Analysis of RNAseq and clinical data of TCGA-BRCA female patients
 - find differentially expressed genes (DEGs)
 - **Univariate Cox proportional hazard regression analysis** over DEGs
   - **random survival forest (RSF)**
+    - adjusted by race, age, stage
   - **stepCox (both)**
-- **marker genes**: intersect of genes selected by RSF and stepCox
+  - **Cox LASSO**
+- **marker genes**: intersect of genes selected by RSF and Cox LASSO
 
 ## `signature_building.R`
 - **Multivariate Cox proportional hazard regression analysis**
