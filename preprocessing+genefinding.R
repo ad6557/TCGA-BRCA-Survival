@@ -7,6 +7,7 @@ library(survminer)
 library(dplyr)
 library(tidyr)
 library(purrr)
+library(glmnet)
 library(EnhancedVolcano)
 library(randomForestSRC)
 
@@ -85,14 +86,24 @@ EnhancedVolcano(toptable,
                 y = 'P.Value',
                 pCutoff = pCutoff,
                 FCcutoff = 1,
-                title = 'limma results',
-                subtitle = 'Differential expression')
+                title = 'Differentially expressed genes from TCGA-BTCA',
+                subtitle = 'cutoff: Fold Change = 2; p value = 0.05 (Bonferroni correction)')
 EDGs = toptable %>% filter(abs(logFC)>1 & P.Value<=pCutoff) # 6640
 
 ######### prepare dataset for cox regression #########
 # RNAseq only
 d_mat = t(limma_res$voomObj$E) # 1224*27289
 coxdata = as.data.frame(d_mat)
+
+# merge demographic
+coxdata$race=as.factor(limma_res$voomObj$targets$race)
+coxdata$age=as.numeric(limma_res$voomObj$targets$age_at_index)
+
+coxdata$stage=as.factor(limma_res$voomObj$targets$paper_pathologic_stage)
+coxdata$stage[which(is.na(coxdata$stage))] <- "NA"
+# levels(coxdata$stage)[levels(coxdata$stage)=="NA"] <- NA
+# too many NAs in this variable -- can be problematic if just toss them
+
 # merge clinical
 coxdata$vital_status=limma_res$voomObj$targets$vital_status
 coxdata$days_to_last_follow_up=limma_res$voomObj$targets$days_to_last_follow_up
@@ -139,18 +150,20 @@ for(x in uni_cox_p$gene_name){
   uni_cox_p[uni_cox_p$gene_name==x,3]=unicoxpvalue(x)
 }
 
-select1 = uni_cox_p[uni_cox_p$p<0.005,2] # 150
+select1 = uni_cox_p[uni_cox_p$p<0.05,2] # 736
 
-dta <- train[,c(select1,"overall_survival","vital_status")]
+dta <- train[,c(select1,"overall_survival","vital_status",
+                "race","age","stage")]
 
 ######### Random survival forest #########
 
 srf <- rfsrc(Surv(overall_survival,vital_status)~., dta,
-             ntree = 1000, nodesize = 5, importance = TRUE, seed=123)
+             ntree = 1000, nodesize = 5, importance = TRUE, seed=2023)
 print(srf)
 
-length(srf$importance[srf$importance>0.005]) # 33
-select.srf = names(srf$importance[srf$importance>0.005])
+length(srf$importance[srf$importance>0]) # 618
+length(srf$importance[srf$importance>0.005]) # 9
+select.srf = names(srf$importance[srf$importance>0])
 
 # visualize it
 srf.imp = sort(srf$importance,decreasing = TRUE)
@@ -164,17 +177,42 @@ rsf.var.plot = ggplot(impvarplot,aes(Importance, reorder(Gene,Importance))) +
   ggtitle("Top Important Variables")
 rsf.var.plot
 
+######### Cox LASSO #########
+Y<-cbind(time=dta$overall_survival, status=dta$vital_status)
+Z<-as.matrix(dta[,select1])
+cv.coxlasso <- cv.glmnet(Z, Y, alpha = 1, family = "cox", nfolds = 5)
+plot(cv.coxlasso)
+text(x=-5, y=200, "lambda.min = 0.028", cex=2, font=3)
+text(x=-5, y=190, "log lambda.min = -3.58", cex=2, font=3)
+
+cv.coxlasso$lambda.min # 0.028
+bestlam = which(cv.coxlasso$lambda==cv.coxlasso$lambda.min)
+
+coxlasso <- glmnet(Z, Y, alpha = 1, family = "cox")
+
+# cv.coxlasso$lambda == coxlasso$lambda
+sum(abs(coxlasso$beta[,bestlam])>1e-20) # 49
+select.coxlasso = coxlasso[["beta"]]@Dimnames[[1]][abs(coxlasso$beta[,bestlam])>1e-20]
+
+
+select.final = intersect(select.coxlasso,select.srf)
+
+
 ######### StepCox(both) analyses #########
-StepCox <- step(coxph(Surv(overall_survival,vital_status)~.,dta),direction = "both")
+data.step = train[,c(select.final,"overall_survival","vital_status",
+                     "race","age","stage")]
+StepCox <- step(coxph(Surv(overall_survival,vital_status)~.,data.step),
+                direction = "both")
 StepCox$coefficients
-select.step = names(StepCox$coefficients) # 75
-
-######### Multivariate Cox #########
-
-select.final = intersect(select.srf,select.step)
+select.step = names(StepCox$coefficients)
 
 
-save(limma_res, EDGs, train, test, dta, srf, StepCox, 
-     select1, select.srf, select.step, select.final, 
+
+
+
+
+save(limma_res, EDGs, train, test, dta, select.final,
+     srf, cv.coxlasso, coxlasso, # StepCox, 
+     select1, select.srf, select.coxlasso, # select.step, 
      file="preprocessing+genefinding.RData")
 

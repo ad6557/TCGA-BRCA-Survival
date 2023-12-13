@@ -12,13 +12,15 @@ train.KM <- survfit(Surv(overall_survival, vital_status) ~ group, data = train.c
 ggsurvplot(train.KM,
            data = train.cox,
            pval = T,
-           risk.table = T)
+           risk.table = T,
+           title = "KM plot for training set")
 
 test.KM <- survfit(Surv(overall_survival, vital_status) ~ group, data = test.cox)
 ggsurvplot(test.KM,
            data = test.cox,
            pval = T,
-           risk.table = T)
+           risk.table = T,
+           title = "KM plot for testing set")
 
 ######### time-dependent ROC and AUC #########
 
@@ -71,40 +73,44 @@ test_ROC_data %>%
 train.cox$age_group = ifelse(train.cox$age>60,"age>60","age<=60")
 ggplot(train.cox, aes(x = age_group, y = risk, fill = age_group)) +
   geom_jitter(aes(color = age_group),width = 0.2, size = 1) +
-  labs(title = "Distribution of risk scores across age groups", x = "Stage", y = "Score") +
+  labs(title = "Distribution of risk scores across age groups", x = "Stage", y = "Score", 
+       subtitle="training") +
   theme_minimal()
 
 # stage
 
 ggplot(train.cox, aes(x = stage, y = risk, fill = stage)) +
   geom_jitter(aes(color = stage),width = 0.2, size = 1) +
-  labs(title = "Distribution of risk scores across stages", x = "Stage", y = "Score") +
+  labs(title = "Distribution of risk scores across stages", x = "Stage", y = "Score", 
+       subtitle="training") +
   theme_minimal()
 
 # age
 test.cox$age_group = ifelse(test.cox$age>60,"age>60","age<=60")
 ggplot(test.cox, aes(x = age_group, y = risk, fill = age_group)) +
   geom_jitter(aes(color = age_group),width = 0.2, size = 1) +
-  labs(title = "Distribution of risk scores across age groups", x = "Stage", y = "Score") +
+  labs(title = "Distribution of risk scores across age groups", x = "Stage", y = "Score", 
+       subtitle="testing") +
   theme_minimal()
 
 # stage
 
 ggplot(test.cox, aes(x = stage, y = risk, fill = stage)) +
   geom_jitter(aes(color = stage),width = 0.2, size = 1) +
-  labs(title = "Distribution of risk scores across stages", x = "Stage", y = "Score") +
+  labs(title = "Distribution of risk scores across stages", x = "Stage", y = "Score", 
+       subtitle="testing") +
   theme_minimal()
 
 ######### PCA #########
 
-PCA <- prcomp(train.cox[,1:16])
+PCA <- prcomp(train.cox[,1:10])
 pca_data <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2], Group = train.cox$group)
 ggplot(pca_data, aes(x = PC1, y = PC2, color = Group)) +
   geom_point() +
   labs(title = "PCA of training set", x = "Principal Component 1", y = "Principal Component 2") +
   theme_minimal()
 
-PCA <- prcomp(test.cox[,1:16])
+PCA <- prcomp(test.cox[,1:10])
 pca_data <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2], Group = test.cox$group)
 ggplot(pca_data, aes(x = PC1, y = PC2, color = Group)) +
   geom_point() +
