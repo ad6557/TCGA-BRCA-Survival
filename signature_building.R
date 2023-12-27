@@ -31,9 +31,9 @@ cox.zph(mdrcox)
 test.cox <- test[,c(select,"overall_survival","vital_status",
                     "age","stage")]
 
-beta = coef(mdrcox)[1:10]
-train.score = as.matrix(train.cox[,1:10]) %*% beta
-test.score = as.matrix(test.cox[,1:10]) %*% beta
+beta = coef(mdrcox)[1:length(select)]
+train.score = as.matrix(train.cox[,1:length(select)]) %*% beta
+test.score = as.matrix(test.cox[,1:length(select)]) %*% beta
 
 train.cox$risk = as.vector(train.score)
 train.cox$group = ifelse(train.cox$risk>median(train.score),"high","low")

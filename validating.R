@@ -27,7 +27,7 @@ ggsurvplot(test.KM,
 train.ROC <-survivalROC(Stime=train.cox$overall_survival,
                         status=train.cox$vital_status,
                         marker=train.cox$risk,
-                        predict.time = 365*10,
+                        predict.time = 365*5,
                         method = 'KM')
 train.AUC = round(train.ROC[["AUC"]],3)
 
@@ -49,7 +49,7 @@ train_ROC_data %>%
 test.ROC <-survivalROC(Stime=test.cox$overall_survival,
                        status=test.cox$vital_status,
                        marker=test.cox$risk,
-                       predict.time = 365*10,
+                       predict.time = 365*5,
                        method = 'KM')
 test.AUC = round(test.ROC[["AUC"]],3)
 
@@ -76,6 +76,7 @@ ggplot(train.cox, aes(x = age_group, y = risk, fill = age_group)) +
   labs(title = "Distribution of risk scores across age groups", x = "Stage", y = "Score", 
        subtitle="training") +
   theme_minimal()
+kruskal.test(risk ~ age_group, data = train.cox)
 
 # stage
 
@@ -84,6 +85,7 @@ ggplot(train.cox, aes(x = stage, y = risk, fill = stage)) +
   labs(title = "Distribution of risk scores across stages", x = "Stage", y = "Score", 
        subtitle="training") +
   theme_minimal()
+kruskal.test(risk ~ stage, data = train.cox)
 
 # age
 test.cox$age_group = ifelse(test.cox$age>60,"age>60","age<=60")
@@ -92,6 +94,7 @@ ggplot(test.cox, aes(x = age_group, y = risk, fill = age_group)) +
   labs(title = "Distribution of risk scores across age groups", x = "Stage", y = "Score", 
        subtitle="testing") +
   theme_minimal()
+kruskal.test(risk ~ age_group, data = test.cox)
 
 # stage
 
@@ -100,6 +103,7 @@ ggplot(test.cox, aes(x = stage, y = risk, fill = stage)) +
   labs(title = "Distribution of risk scores across stages", x = "Stage", y = "Score", 
        subtitle="testing") +
   theme_minimal()
+kruskal.test(risk ~ stage, data = test.cox)
 
 ######### PCA #########
 
@@ -116,4 +120,18 @@ ggplot(pca_data, aes(x = PC1, y = PC2, color = Group)) +
   geom_point() +
   labs(title = "PCA of testing set", x = "Principal Component 1", y = "Principal Component 2") +
   theme_minimal()
+
+
+######### KM plot by AC104211.1 ########
+
+coxdata$AC = ifelse(coxdata$AC104211.1>median(coxdata$AC104211.1),"high","low")
+
+# fitting survival curve
+KM <- survfit(Surv(overall_survival, vital_status) ~ AC, data = coxdata)
+ggsurvplot(KM,
+           data = coxdata,
+           pval = T,
+           risk.table = T,
+           title = "KM plot divided by AC104211.1 on all data ")
+
 

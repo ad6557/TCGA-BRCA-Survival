@@ -65,7 +65,7 @@ limma_pipeline = function(
     list(
       voomObj=v, # normalized data
       fit=fit, # fitted model and statistics
-      topGenes=topGenes # the 100 most differentially expressed genes
+      topGenes=topGenes 
     )
   )
 }
@@ -128,6 +128,13 @@ coxdata = coxdata[-c(naos,negativeost),] # 1076
 colnames(coxdata)[1:27289] == limma_res$voomObj$genes$gene_id
 colnames(coxdata)[1:27289] <- limma_res$voomObj$genes$gene_name
 
+######## table 1 ########
+data = coxdata[,27290:27293]
+data %>%
+  mutate(age_category = ifelse(age > 60, ">60", "<=60")) %>%
+  count(age_category, sort = TRUE)
+
+
 ######### split train test #########
 
 set.seed(2023)
@@ -163,7 +170,7 @@ print(srf)
 
 length(srf$importance[srf$importance>0]) # 618
 length(srf$importance[srf$importance>0.005]) # 9
-select.srf = names(srf$importance[srf$importance>0])
+select.srf = names(srf$importance[srf$importance>0.0])
 
 # visualize it
 srf.imp = sort(srf$importance,decreasing = TRUE)
@@ -195,6 +202,7 @@ sum(abs(coxlasso$beta[,bestlam])>1e-20) # 49
 select.coxlasso = coxlasso[["beta"]]@Dimnames[[1]][abs(coxlasso$beta[,bestlam])>1e-20]
 
 
+
 select.final = intersect(select.coxlasso,select.srf)
 
 
@@ -205,9 +213,6 @@ StepCox <- step(coxph(Surv(overall_survival,vital_status)~.,data.step),
                 direction = "both")
 StepCox$coefficients
 select.step = names(StepCox$coefficients)
-
-
-
 
 
 
