@@ -1,9 +1,6 @@
 # TCGA-BRCA-Survival
 Analysis of RNAseq and clinical data of TCGA-BRCA female patients
 
-### Course: Advanced Survival Analysis-Fall 2023
-#### Instructor: Dr. Yongzhao Shao
-
 ## `preprocessing+genefinding.R` 
 - download and preprocess RNAseq data
   - filtering
