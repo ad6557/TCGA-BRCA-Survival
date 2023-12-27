@@ -18,7 +18,8 @@ Analysis of RNAseq and clinical data of TCGA-BRCA female patients
 
 ## `signature_building.R`
 - **Multivariate Cox proportional hazard regression analysis**
-  - adjusted by ~~race,~~ age, stage and marker genes
+  - toss insignificant marker genes and race
+  - in the end adjusted by ~~race,~~ age, stage and 10 of marker genes
 - **risk scores** = sum of [multicox coef(RNA)*count(RNA)] + coef(age)*age + coef(stage)*factor(stage)
 - divide into high risk and low risk groups cut off by median of risk scores
 
